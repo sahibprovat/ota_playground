@@ -18,7 +18,7 @@ and output swing move the way they do. No build step, no dependencies, no server
 
 ## 🔗 Live demo
 
-**[Open the tool »](https://<your-username>.github.io/<repo-name>/)**
+**[Open the tool »](https://sahibprovat.github.io/ota_playground/)**
 
 <!-- Record a short (10–20 s) screen capture of dragging a slider while the
      equation panel reacts, save it as assets/demo.gif, and it will show here. -->
