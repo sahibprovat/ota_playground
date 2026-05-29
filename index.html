@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-Stage Op-Amp Design Studio</title>
+<style>
+:root{
+  --bg:#fbfaf7; --panel:#ffffff; --panel2:#f3f2ed;
+  --tp:#1d1c1a; --ts:#5c5a53; --tt:#8d8a82;
+  --ok:#0f6e56; --bad:#b3261e; --warn:#9a6500; --info:#2563a8; --acc:#378ADD;
+  --bg-ok:#e7f4ee; --bg-bad:#fbeaea; --bg-warn:#fcf3e2; --bg-info:#e9f1fa;
+  --bs:rgba(0,0,0,0.12); --bt:rgba(0,0,0,0.07);
+  --rmd:8px; --rlg:12px;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#171715; --panel:#201f1d; --panel2:#2a2926;
+    --tp:#ecebe6; --ts:#c2c0b6; --tt:#928f87;
+    --ok:#74cfa1; --bad:#f1a7a2; --warn:#e3b878; --info:#7db3e8; --acc:#5aa0e6;
+    --bg-ok:#0f3a30; --bg-bad:#3a1414; --bg-warn:#3a2c12; --bg-info:#15293c;
+    --bs:rgba(255,255,255,0.15); --bt:rgba(255,255,255,0.07);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tp);font-family:var(--sans);
+  font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:19px;font-weight:600;margin:0 0 2px;letter-spacing:-0.01em}
+.sub{font-size:12px;color:var(--ts);margin:0 0 14px}
+.fixedbar{font-family:var(--mono);font-size:11px;color:var(--ts);background:var(--panel2);
+  border:0.5px solid var(--bt);border-radius:var(--rmd);padding:7px 12px;margin-bottom:14px;
+  display:flex;flex-wrap:wrap;gap:4px 16px}
+.fixedbar b{color:var(--tp);font-weight:600}
+
+/* ---- top grid: sliders + equation panel ---- */
+.topgrid{display:grid;grid-template-columns:minmax(280px,0.92fr) minmax(300px,1.08fr);
+  gap:14px;align-items:start}
+@media(max-width:740px){.topgrid{grid-template-columns:1fr}}
+.section-h{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--tt);margin:0 0 8px}
+.slpanel{background:var(--panel);border:0.5px solid var(--bt);border-radius:var(--rlg);padding:13px 14px}
+.slrow{display:grid;grid-template-columns:118px 1fr 38px 70px;align-items:center;gap:7px;margin-bottom:7px}
+.slname{font-family:var(--mono);font-size:11.5px;font-weight:600;cursor:pointer;line-height:1.25;
+  border-radius:4px;padding:1px 3px;margin:-1px -3px;transition:background .12s}
+.slname:hover{background:var(--bg-info)}
+.slname.active{background:var(--bg-info);outline:1px solid var(--acc)}
+.slsub{font-size:9.5px;color:var(--tt);font-family:var(--sans);font-weight:400}
+.slval{font-size:12px;font-weight:600;text-align:right;font-family:var(--mono)}
+.vbadge{font-size:9.5px;font-family:var(--mono);padding:2px 5px;border-radius:4px;text-align:center;white-space:nowrap}
+.vok{background:var(--bg-ok);color:var(--ok)} .vwn{background:var(--bg-warn);color:var(--warn)}
+input[type=range]{width:100%;accent-color:var(--acc);cursor:pointer;height:18px}
+.divider{height:0.5px;background:var(--bt);margin:9px 0}
+.btn{font-family:var(--sans);font-size:11px;color:var(--ts);background:var(--panel2);
+  border:0.5px solid var(--bs);border-radius:6px;padding:4px 10px;cursor:pointer}
+.btn:hover{color:var(--tp)}
+
+/* ---- equation panel ---- */
+.eqpanel{background:var(--panel);border:0.5px solid var(--bt);border-radius:var(--rlg);
+  padding:14px 15px;min-height:230px}
+.eq-title{font-size:13px;font-weight:600;margin:0 0 9px;line-height:1.35}
+.eq-title .tag{font-family:var(--mono);font-weight:700}
+.eqrow{margin-bottom:9px}
+.eq{font-family:var(--mono);font-size:12.5px;color:var(--tp);font-weight:600}
+.eq sub,.eq sup{font-size:9px}
+.eqn{font-family:var(--mono);font-size:11.5px;color:var(--info);margin-top:1px}
+.eqnote{font-size:11.5px;color:var(--ts);margin-top:10px;line-height:1.6;
+  background:var(--panel2);border-left:3px solid var(--acc);border-radius:4px;padding:7px 10px}
+.eqnote b{color:var(--tp)}
+.intro{font-size:12px;color:var(--ts);line-height:1.65}
+.intro b{color:var(--tp)}
+
+/* ---- metric cards ---- */
+.mcards{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin:14px 0 4px}
+@media(max-width:840px){.mcards{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:520px){.mcards{grid-template-columns:repeat(2,1fr)}}
+.mcard{background:var(--panel);border:0.5px solid var(--bt);border-radius:var(--rmd);
+  padding:8px 9px;cursor:pointer;transition:transform .08s}
+.mcard:hover{transform:translateY(-1px);border-color:var(--bs)}
+.mcard .ml{font-size:10px;color:var(--ts);margin:0;font-weight:500}
+.mcard .mn{font-size:18px;font-weight:600;margin:1px 0 0;font-family:var(--mono);line-height:1.1}
+.mcard .mu{font-size:9px;color:var(--tt);margin:0}
+
+/* ---- tabs ---- */
+.tabbar{display:flex;gap:4px;margin:18px 0 0;border-bottom:0.5px solid var(--bt)}
+.tab{font-size:12.5px;font-weight:500;color:var(--ts);background:none;border:none;
+  padding:9px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab:hover{color:var(--tp)}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+.tabpane{display:none;padding-top:14px}
+.tabpane.on{display:block}
+.cvwrap{width:100%;overflow:hidden}
+canvas{width:100%;display:block}
+.leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--ts);margin-top:8px}
+.ld{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:4px;border-radius:1px}
+
+/* op-point sub-sliders inside schematic */
+.opbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 16px;margin-bottom:10px;
+  background:var(--panel2);border:0.5px solid var(--bt);border-radius:var(--rmd);padding:9px 12px}
+.opr{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ts)}
+.opr label{min-width:74px;font-family:var(--mono)}
+.opr .ov{min-width:48px;text-align:right;font-weight:600;font-family:var(--mono);color:var(--tp)}
+@media(max-width:560px){.opbar{grid-template-columns:1fr}}
+
+/* region cards (schematic) */
+.rcards{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+@media(max-width:760px){.rcards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:420px){.rcards{grid-template-columns:1fr}}
+.rc{border-radius:var(--rmd);padding:8px 10px;border:1.5px solid}
+.rc .cn{font-size:13px;font-weight:600;margin:0}
+.rc .cs{font-size:9.5px;color:var(--ts);margin:1px 0 5px}
+.rc .cb{display:inline-block;font-size:10px;font-weight:600;padding:1px 8px;border-radius:3px;margin-bottom:5px}
+.rc .cv{font-size:10px;color:var(--ts);line-height:1.7;font-family:var(--mono)}
+.rc .fx{font-size:10px;margin-top:5px;padding:5px 6px;border-radius:4px;line-height:1.5}
+.c-sat{border-color:var(--ok);background:rgba(29,158,117,0.07)}
+.c-tri{border-color:var(--bad);background:rgba(216,90,48,0.09)}
+.c-off{border-color:#888780;background:rgba(136,135,128,0.08)}
+.b-sat{background:#1D9E75;color:#fff} .b-tri{background:#D85A30;color:#fff} .b-off{background:#888780;color:#fff}
+.fx-sat{background:rgba(29,158,117,0.12);color:var(--ok)}
+.fx-tri{background:rgba(216,90,48,0.15);color:var(--bad)}
+.mgok{color:var(--ok)} .mgwn{color:var(--warn)} .mgbad{color:var(--bad)}
+
+/* headroom note + icmr table */
+.hnote{font-size:11px;color:var(--ts);margin-top:12px;line-height:1.7;background:var(--panel2);
+  border-left:3px solid var(--warn);border-radius:4px;padding:8px 11px}
+.hnote b{color:var(--tp)}
+.itbl{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:12px}
+.itbl th{font-size:10.5px;font-weight:500;color:var(--ts);text-align:left;padding:5px 8px;
+  border-bottom:0.5px solid var(--bs);background:var(--panel2)}
+.itbl td{padding:5px 8px;border-bottom:0.5px solid var(--bt);font-family:var(--mono)}
+.itbl tr.cur{background:var(--bg-info)}
+.itbl .y{color:var(--ok)} .itbl .n{color:var(--bad)}
+
+/* sensitivity table */
+.stbl{border-collapse:collapse;font-size:12px;width:100%;table-layout:fixed}
+.stbl col.rh{width:140px}
+.stbl th.rh{text-align:left;padding:6px 8px;background:var(--panel2);border-bottom:0.5px solid var(--bs);
+  color:var(--ts);font-size:11px;font-weight:400}
+.stbl th.ch{padding:5px 2px;text-align:center;border-bottom:0.5px solid var(--bs);
+  border-left:0.5px solid var(--bt);font-size:10px;font-weight:500;color:var(--ts);line-height:1.3}
+.stbl td.rh{padding:6px 8px;border-bottom:0.5px solid var(--bt)}
+.stbl td.rhn{font-size:12px;font-weight:600;font-family:var(--mono)}
+.stbl td.rhs{font-size:9.5px;color:var(--ts)}
+.stbl td.cell{text-align:center;border-bottom:0.5px solid var(--bt);border-left:0.5px solid var(--bt);
+  font-size:13px;font-weight:600;padding:5px 2px;cursor:pointer}
+.stbl td.cell:hover{opacity:.7}
+.cg{background:var(--bg-ok);color:var(--ok)} .cg2{background:#085041;color:#9FE1CB}
+.cr{background:var(--bg-bad);color:var(--bad)} .cr2{background:#501313;color:#F7C1C1}
+.cw{background:var(--bg-warn);color:var(--warn)} .cn{color:var(--tt)}
+.slgd{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:11px;color:var(--ts);margin:4px 0 10px}
+.lb{width:26px;height:17px;border-radius:4px;display:inline-block;font-size:11px;font-weight:600;
+  text-align:center;line-height:17px;margin-right:4px;vertical-align:middle}
+.sexp{background:var(--panel);border:0.5px solid var(--bt);border-radius:var(--rlg);
+  padding:13px 15px;font-size:12.5px;min-height:70px;line-height:1.65;margin-top:10px}
+.sexp .et{font-weight:600;font-size:13px;margin:0 0 5px}
+.sexp .em{color:var(--ts);font-size:11.5px;font-family:var(--mono)}
+.hint{color:var(--tt);font-size:12px;font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Two-Stage CMOS Op-Amp · Design Studio</h1>
+  <p class="sub">NMOS input pair · PMOS mirror load · Miller-compensated common-source 2nd stage. Drag any slider — its equation appears live in the panel. Four views below.</p>
+
+  <div class="fixedbar">
+    <span><b>L = 1 µm</b> (all devices)</span>
+    <span>µCoxN = 170 µA/V² · µCoxP = 58 µA/V²</span>
+    <span>λN = 0.014 · λP = 0.042 V⁻¹</span>
+    <span>VTN = 0.54 · |VTP| = 0.71 V</span>
+    <span><b>VDD = 3.3 V</b></span>
+  </div>
+
+  <div class="topgrid">
+    <!-- DESIGN SLIDERS -->
+    <div class="slpanel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+        <p class="section-h" style="margin:0">Design parameters</p>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
+
+      <div class="slrow">
+        <span class="slname" data-s="wl12" style="color:#BA7517">(W/L)₁₂<span class="slsub"> M1,M2 · diff pair</span></span>
+        <input type="range" id="wl12" min="1" max="20" value="3" step="1">
+        <span class="slval" id="vwl12">3</span><span class="vbadge vok" id="bwl12">—</span>
+      </div>
+      <div class="slrow">
+        <span class="slname" data-s="wl34" style="color:#534AB7">(W/L)₃₄<span class="slsub"> M3,M4 · PMOS mirror</span></span>
+        <input type="range" id="wl34" min="1" max="15" value="2" step="1">
+        <span class="slval" id="vwl34">2</span><span class="vbadge vok" id="bwl34">—</span>
+      </div>
+      <div class="slrow">
+        <span class="slname" data-s="wl5" style="color:#888780">(W/L)₅<span class="slsub"> M5 · tail source</span></span>
+        <input type="range" id="wl5" min="3" max="40" value="10" step="1">
+        <span class="slval" id="vwl5">10</span><span class="vbadge vok" id="bwl5">—</span>
+      </div>
+      <div class="slrow">
+        <span class="slname" data-s="wl6" style="color:#D85A30">(W/L)₆<span class="slsub"> M6 · 2nd-stage driver</span></span>
+        <input type="range" id="wl6" min="5" max="120" value="25" step="1">
+        <span class="slval" id="vwl6">25</span><span class="vbadge vok" id="bwl6">—</span>
+      </div>
+      <div class="slrow">
+        <span class="slname" data-s="wl7" style="color:#1D9E75">(W/L)₇<span class="slsub"> M7 · 2nd-stage load</span></span>
+        <input type="range" id="wl7" min="10" max="150" value="39" step="1">
+        <span class="slval" id="vwl7">39</span><span class="vbadge vok" id="bwl7">—</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="slrow">
+        <span class="slname" data-s="i5" style="color:#888780">I₅<span class="slsub"> tail current → I_D1=I₅/2</span></span>
+        <input type="range" id="i5" min="5" max="60" value="20" step="1">
+        <span class="slval" id="vi5">20</span><span class="vbadge vok" id="bi5">µA</span>
+      </div>
+      <div class="slrow">
+        <span class="slname" data-s="id6" style="color:#D85A30">I_D6<span class="slsub"> 2nd-stage current</span></span>
+        <input type="range" id="id6" min="20" max="300" value="100" step="5">
+        <span class="slval" id="vid6">100</span><span class="vbadge vok" id="bid6">µA</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="slrow">
+        <span class="slname" data-s="cc" style="color:#378ADD">C_c<span class="slsub"> Miller compensation cap</span></span>
+        <input type="range" id="cc" min="0.5" max="5" value="1.4" step="0.1">
+        <span class="slval" id="vcc">1.4</span><span class="vbadge vok" id="bcc">pF</span>
+      </div>
+      <div class="slrow">
+        <span class="slname" data-s="cl" style="color:#5F5E5A">C_L<span class="slsub"> load cap (external)</span></span>
+        <input type="range" id="cl" min="0.5" max="10" value="2" step="0.1">
+        <span class="slval" id="vcl">2.0</span><span class="vbadge vok" id="bcl">pF</span>
+      </div>
+    </div>
+
+    <!-- LIVE EQUATION PANEL -->
+    <div class="eqpanel" id="eqpanel"></div>
+  </div>
+
+  <!-- METRIC CARDS -->
+  <p class="section-h" style="margin:16px 0 6px">Performance (at balanced bias) — click a card for its derivation</p>
+  <div class="mcards">
+    <div class="mcard" data-m="gain"><p class="ml">DC Gain</p><p class="mn" id="m-gain" style="color:var(--info)">—</p><p class="mu">dB</p></div>
+    <div class="mcard" data-m="pm"><p class="ml">Phase Margin</p><p class="mn" id="m-pm">—</p><p class="mu" id="m-pm-u">—</p></div>
+    <div class="mcard" data-m="gbw"><p class="ml">GBW</p><p class="mn" id="m-gbw">—</p><p class="mu">MHz</p></div>
+    <div class="mcard" data-m="sr"><p class="ml">Slew Rate</p><p class="mn" id="m-sr">—</p><p class="mu">V/µs</p></div>
+    <div class="mcard" data-m="icmrn"><p class="ml">ICMR⁻</p><p class="mn" id="m-icmrn">—</p><p class="mu">V (lower✓)</p></div>
+    <div class="mcard" data-m="icmrp"><p class="ml">ICMR⁺</p><p class="mn" id="m-icmrp">—</p><p class="mu">V (higher✓)</p></div>
+    <div class="mcard" data-m="swing"><p class="ml">Out Swing</p><p class="mn" id="m-swing" style="color:var(--ok)">—</p><p class="mu">V pk-pk</p></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabbar">
+    <button class="tab on" data-t="sch">Schematic + Regions</button>
+    <button class="tab" data-t="bode">Bode (Gain &amp; PM)</button>
+    <button class="tab" data-t="hr">Headroom (ICMR &amp; Swing)</button>
+    <button class="tab" data-t="sens">Sensitivity Matrix</button>
+  </div>
+
+  <!-- SCHEMATIC -->
+  <div class="tabpane on" id="pane-sch">
+    <div class="opbar">
+      <div class="opr"><label>V_cm</label><input type="range" id="vcm" min="0" max="3.3" value="1.65" step="0.05"><span class="ov" id="vvcm">1.65</span></div>
+      <div class="opr"><label>V_d</label><input type="range" id="vd" min="-1.5" max="1.5" value="0" step="0.05"><span class="ov" id="vvd">0.00</span></div>
+      <div class="opr"><label>V_out</label><input type="range" id="vout" min="0" max="3.3" value="1.65" step="0.05"><span class="ov" id="vvout">1.65</span></div>
+    </div>
+    <div class="cvwrap"><canvas id="sch" height="252"></canvas></div>
+    <div class="rcards" id="rcards"></div>
+  </div>
+
+  <!-- BODE -->
+  <div class="tabpane" id="pane-bode">
+    <div class="cvwrap"><canvas id="bode" height="264"></canvas></div>
+    <div class="leg">
+      <span><span class="ld" style="background:#378ADD"></span>Gain</span>
+      <span><span class="ld" style="background:#D85A30"></span>Phase</span>
+      <span><span class="ld" style="background:#1D9E75"></span>p₂ (output pole)</span>
+      <span><span class="ld" style="background:#D85A30"></span>z₁ (RHP zero)</span>
+      <span><span class="ld" style="background:#BA7517"></span>GBW</span>
+      <span><span class="ld" style="background:#534AB7"></span>p_mirror</span>
+    </div>
+  </div>
+
+  <!-- HEADROOM -->
+  <div class="tabpane" id="pane-hr">
+    <div class="cvwrap"><canvas id="hr" height="210"></canvas></div>
+    <div class="hnote">
+      <b>Why a hard ICMR⁻ floor exists:</b> with an NMOS input pair, the lowest usable common-mode input is
+      ICMR⁻ = VTN + V<sub>ov12</sub> + V<sub>ov5</sub>. The VTN term (0.54 V) is irreducible — you cannot get below it no matter how wide the devices.
+      <br><b>Real silicon adds ~30–60 mV more:</b> body effect on M1/M2 (V<sub>SB</sub>≈V<sub>ov5</sub>) raises V<sub>T</sub> by ΔV<sub>T</sub>=K1·(√(2φ<sub>F</sub>+V<sub>SB</sub>)−√(2φ<sub>F</sub>)) ≈ 40 mV, plus short-channel BSIM corrections — which is why the simulated wall sits near 0.85–0.9 V.
+    </div>
+    <table class="itbl" id="itbl">
+      <thead><tr><th>Target ICMR⁻</th><th>need V_ov5+V_ov12 ≤</th><th>(W/L)₁₂ ≥</th><th>(W/L)₅ ≥</th><th>at current bias?</th></tr></thead>
+      <tbody id="itbody"></tbody>
+    </table>
+  </div>
+
+  <!-- SENSITIVITY -->
+  <div class="tabpane" id="pane-sens">
+    <div class="slgd">
+      <span><span class="lb cg2">↑↑</span>strong improve</span>
+      <span><span class="lb cg">↑</span>improve</span>
+      <span><span class="lb cn">—</span>no effect</span>
+      <span><span class="lb cr">↓</span>degrade</span>
+      <span><span class="lb cr2">↓↓</span>strong degrade</span>
+      <span><span class="lb cw">↑</span>neutral/depends</span>
+      <span style="color:var(--tt)">— click any cell for the mechanism. Arrows = effect of <b>increasing</b> that parameter.</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="stbl">
+        <colgroup><col class="rh"><col><col><col><col><col><col><col><col></colgroup>
+        <thead><tr>
+          <th class="rh">Parameter ↑</th>
+          <th class="ch">Gain</th><th class="ch">Phase<br>margin</th><th class="ch">GBW</th>
+          <th class="ch">ICMR⁻<br>(low✓)</th><th class="ch">ICMR⁺<br>(high✓)</th>
+          <th class="ch">Vout<br>max</th><th class="ch">Vout<br>min</th><th class="ch">Slew<br>rate</th>
+        </tr></thead>
+        <tbody id="sbody"></tbody>
+      </table>
+    </div>
+    <div class="sexp" id="sexp"><p class="hint">Click any coloured cell to see the equation and mechanism behind that effect.</p></div>
+  </div>
+</div>
+
+<script>
+/* ===================== process + constants ===================== */
+const muN=170e-6, muP=58e-6, laN=0.014, laP=0.042;
+const VTN=0.54, VTP=0.71, Cox=4.5e-15, Lum=1.0, VDD=3.3;
+const PI=Math.PI;
+
+/* ===================== helpers ===================== */
+const $=id=>document.getElementById(id);
+const val=id=>+$(id).value;
+const f=(x,n=3)=>x.toFixed(n);
+const uA=x=>(x*1e6).toFixed(1);
+function eng(hz){
+  if(hz>=1e9)return (hz/1e9).toFixed(2)+' GHz';
+  if(hz>=1e6)return (hz/1e6).toFixed(2)+' MHz';
+  if(hz>=1e3)return (hz/1e3).toFixed(1)+' kHz';
+  return hz.toFixed(1)+' Hz';
+}
+const dark=()=>matchMedia('(prefers-color-scheme:dark)').matches;
+
+/* ===================== small-signal engine (balanced bias) ===================== */
+function computeSS(){
+  const WL12=val('wl12'),WL34=val('wl34'),WL5=val('wl5'),WL6=val('wl6'),WL7=val('wl7');
+  const I5=val('i5')*1e-6, ID6=val('id6')*1e-6, Cc=val('cc')*1e-12, CL=val('cl')*1e-12;
+  const ID1=I5/2;
+
+  const gm2=Math.sqrt(2*muN*WL12*ID1);
+  const gm6=Math.sqrt(2*muP*WL6*ID6);
+  const gm3=Math.sqrt(2*muP*WL34*ID1);
+  const gds2=laN*ID1, gds4=laP*ID1, gds6=laP*ID6, gds7=laN*ID6;
+  const Ro1=1/(gds2+gds4), Ro2=1/(gds6+gds7);
+  const AV1=gm2*Ro1, AV2=gm6*Ro2, AV=AV1*AV2;
+  const gainDB=20*Math.log10(AV);
+
+  const p1=(gds2+gds4)*(gds6+gds7)/(2*PI*gm6*Cc);
+  const p2=gm6/(2*PI*CL);
+  const z1=gm6/(2*PI*Cc);
+  const GBW=gm2/(2*PI*Cc);
+  const Cgs3=(2/3)*Cox*WL34*Lum*Lum*1e-12;
+  const pm_f=gm3/(2*PI*2*Cgs3);
+  const PM=90 - Math.atan(GBW/p2)*180/PI - Math.atan(GBW/z1)*180/PI - Math.atan(GBW/pm_f)*180/PI;
+  const ph_p2=Math.atan(GBW/p2)*180/PI, ph_z1=Math.atan(GBW/z1)*180/PI;
+
+  const Vov12=Math.sqrt(2*ID1/(muN*WL12));
+  const Vov34=Math.sqrt(2*ID1/(muP*WL34));
+  const Vov5 =Math.sqrt(2*I5 /(muN*WL5));
+  const Vov6 =Math.sqrt(2*ID6/(muP*WL6));
+  const Vov7 =Math.sqrt(2*ID6/(muN*WL7));
+
+  const ICMRn=VTN+Vov12+Vov5;
+  const ICMRp=VDD-VTP-Vov34+VTN;
+  const VoutMin=Vov7, VoutMax=VDD-Vov6, swing=VoutMax-VoutMin;
+  const SR=I5/Cc, SRout=ID6/CL;
+
+  return {WL12,WL34,WL5,WL6,WL7,I5,ID1,ID6,Cc,CL,
+    gm2,gm6,gm3,gds2,gds4,gds6,gds7,Ro1,Ro2,AV1,AV2,AV,gainDB,
+    p1,p2,z1,GBW,pm_f,PM,ph_p2,ph_z1,
+    Vov12,Vov34,Vov5,Vov6,Vov7,ICMRn,ICMRp,VoutMin,VoutMax,swing,SR,SRout};
+}
+
+/* ===================== large-signal op-point engine (schematic) ===================== */
+function computeOP(){
+  const Vcm=val('vcm'),Vd=val('vd'),Vout=val('vout');
+  const I5=val('i5')*1e-6, ID6=val('id6')*1e-6;
+  const WL12=val('wl12'),WL34=val('wl34'),WL5=val('wl5'),WL6=val('wl6'),WL7=val('wl7');
+  const Vinp=Vcm+Vd/2, Vinn=Vcm-Vd/2;
+
+  const K12=muN*WL12;
+  const alpha=-Vd*Math.sqrt(K12/2);
+  const disc=2*I5-alpha*alpha;
+  let ID1,ID2;
+  if(disc<=0){ ID1=Vd<=0?I5:0; ID2=Vd>=0?I5:0; }
+  else{ const v=(-alpha+Math.sqrt(disc))/2; ID2=Math.max(0,Math.min(I5,v*v)); ID1=I5-ID2; }
+
+  const dominantID=Math.max(ID1,ID2);
+  let Vcs;
+  if(dominantID>1e-13){ const Vg=ID1>=ID2?Vinn:Vinp; Vcs=Vg-(VTN+Math.sqrt(2*dominantID/K12)); }
+  else { Vcs=Vcm-VTN-Math.sqrt(I5/K12); }
+
+  const VD1=ID1>1e-13 ? VDD-VTP-Math.sqrt(2*ID1/(muP*WL34)) : VDD-VTP*0.05;
+  const Vov6q=Math.sqrt(2*ID6/(muP*WL6));
+  const VD4=VDD-VTP-Vov6q;
+
+  const Vov5=Math.sqrt(2*I5/(muN*WL5)); const VGS5=VTN+Vov5, VDS5=Vcs;
+  const VGS1=Vinn-Vcs, Vov1=Math.max(0,VGS1-VTN), VDS1=VD1-Vcs;
+  const VGS2=Vinp-Vcs, Vov2=Math.max(0,VGS2-VTN), VDS2=VD4-Vcs;
+  const Vov3=ID1>1e-13?Math.sqrt(2*ID1/(muP*WL34)):0;
+  const Vov4=Vov3, VDS4m=VDD-VD4, VGS4m=VDD-VD1;
+  const VGS6m=VDD-VD4, Vov6=Math.sqrt(2*ID6/(muP*WL6)), VDS6m=VDD-Vout;
+  const Vov7=Math.sqrt(2*ID6/(muN*WL7)), VGS7=VTN+Vov7, VDS7=Vout;
+
+  const rN=(g,d,v)=>g<VTN?'OFF':d<Math.max(0,v)?'TRI':'SAT';
+  const rP=(g,d,v)=>g<VTP?'OFF':d<Math.max(0,v)?'TRI':'SAT';
+
+  const mos=[
+    {id:'M1',sub:'NMOS · Vin⁻ gate',type:'N',VGS:VGS1,VDS:VDS1,Vov:Vov1,ID:ID1*1e6,reg:rN(VGS1,VDS1,Vov1),mg:VDS1-Vov1,nodes:{g:Vinn,d:VD1,s:Vcs}},
+    {id:'M2',sub:'NMOS · Vin⁺ gate',type:'N',VGS:VGS2,VDS:VDS2,Vov:Vov2,ID:ID2*1e6,reg:rN(VGS2,VDS2,Vov2),mg:VDS2-Vov2,nodes:{g:Vinp,d:VD4,s:Vcs}},
+    {id:'M3',sub:'PMOS · diode load',type:'P',VGS:VDD-VD1,VDS:VDD-VD1,Vov:Vov3,ID:ID1*1e6,reg:ID1>1e-13?'SAT':'OFF',mg:999,nodes:{g:VD1,d:VD1,s:VDD}},
+    {id:'M4',sub:'PMOS · mirror',type:'P',VGS:VGS4m,VDS:VDS4m,Vov:Vov4,ID:ID1*1e6,reg:rP(VGS4m,VDS4m,Vov4),mg:VDS4m-Vov4,nodes:{g:VD1,d:VD4,s:VDD}},
+    {id:'M5',sub:'NMOS · tail',type:'N',VGS:VGS5,VDS:VDS5,Vov:Vov5,ID:I5*1e6,reg:rN(VGS5,VDS5,Vov5),mg:VDS5-Vov5,nodes:{g:'Vb',d:Vcs,s:0}},
+    {id:'M6',sub:'PMOS · 2nd driver',type:'P',VGS:VGS6m,VDS:VDS6m,Vov:Vov6,ID:ID6*1e6,reg:rP(VGS6m,VDS6m,Vov6),mg:VDS6m-Vov6,nodes:{g:VD4,d:Vout,s:VDD}},
+    {id:'M7',sub:'NMOS · 2nd load',type:'N',VGS:VGS7,VDS:VDS7,Vov:Vov7,ID:ID6*1e6,reg:rN(VGS7,VDS7,Vov7),mg:VDS7-Vov7,nodes:{g:'Vb',d:Vout,s:0}},
+  ];
+
+  const ICMRn=(Vov5+VTN+Vov1).toFixed(3);
+  mos.forEach(m=>{
+    if(m.reg==='SAT'){m.fx='Operating in saturation. ✓';m.fxc='fx-sat';return;}
+    if(m.id==='M5'){
+      m.fx = m.reg==='TRI'
+        ? `V_cs=${f(Vcs)}V < V_ov5=${f(Vov5)}V. → Raise V_cm above ICMR⁻=${ICMRn}V, or widen M5/M1,2 to shrink V_ov.`
+        : `V_cs=${f(Vcs)}V is negative — V_cm critically low. Raise V_cm.`;
+    } else if(m.id==='M1'){
+      m.fx = m.reg==='OFF'
+        ? `VGS1=${f(VGS1)}V < VTN=0.54V. V_d=${f(Vd,2)}V drives M1 off. Reduce |V_d| or raise V_cm.`
+        : `VDS1=${f(VDS1)}V < V_ov1=${f(Vov1)}V. VD1 too low → increase (W/L)₃₄ or raise V_cm.`;
+    } else if(m.id==='M2'){
+      m.fx = m.reg==='OFF'
+        ? `VGS2=${f(VGS2)}V < VTN=0.54V. V_d=${f(Vd,2)}V drives M2 off. Reduce |V_d|.`
+        : `VDS2=${f(VDS2)}V < V_ov2=${f(Vov2)}V. VD4 too low → increase (W/L)₆ or reduce |V_d|.`;
+    } else if(m.id==='M4'){
+      m.fx = `|VDS4|=${f(VDS4m)}V < V_ov4=${f(Vov4)}V. → Increase (W/L)₃₄ to shrink V_ov34, or reduce I_D1 imbalance.`;
+    } else if(m.id==='M6'){
+      m.fx = m.reg==='OFF'
+        ? `|VGS6|=${f(VGS6m)}V < |VTP|=0.71V. VD4 too near VDD → reduce (W/L)₆ or raise I_D6.`
+        : `|VDS6|=${f(VDS6m)}V < V_ov6=${f(Vov6)}V. V_out > VDD−V_ov6=${f(VDD-Vov6)}V → widen M6 or lower V_out.`;
+    } else if(m.id==='M7'){
+      m.fx = `VDS7=${f(VDS7)}V < V_ov7=${f(Vov7)}V. V_out below sat boundary → widen M7 (need (W/L)₇ ≥ ${Math.ceil(2*ID6*1e6/(muN*1e6*Math.pow(Math.max(0.05,Vout),2)))}).`;
+    } else m.fx='Check operating conditions.';
+    m.fxc='fx-tri';
+  });
+
+  return {mos,Vcs,VD1,VD4,Vinp,Vinn,Vout,I5,ID6,Vcm,Vd,Vov5,Vov6,Vov7};
+}
+
+/* ===================== live equation stories ===================== */
+const INTRO = `
+  <p class="eq-title">Live equation panel</p>
+  <p class="intro"><b>Drag any slider</b> (or click its name) and the governing equation appears here with your current numbers substituted in. <b>Click a metric card</b> to see how that number is built up.<br><br>
+  The whole amplifier reduces to two cascaded gain stages:</p>
+  <div class="eqrow"><div class="eq">A<sub>v</sub> = (g<sub>m2</sub>·R<sub>o1</sub>) · (g<sub>m6</sub>·R<sub>o2</sub>)</div>
+  <div class="eqn">stage&nbsp;1 gain × stage&nbsp;2 gain</div></div>
+  <div class="eqrow"><div class="eq">GBW = g<sub>m2</sub>/(2π·C<sub>c</sub>) &nbsp;·&nbsp; SR = I₅/C<sub>c</sub></div></div>
+  <p class="eqnote">Start with <b>(W/L)₆</b> — it's the only knob that improves gain <i>and</i> phase margin at once. Then trade <b>C<sub>c</sub></b> against slew rate for stability.</p>`;
+
+function row(eq,num){ return `<div class="eqrow"><div class="eq">${eq}</div>${num?`<div class="eqn">${num}</div>`:''}</div>`; }
+function head(tag,rest){ return `<p class="eq-title"><span class="tag" style="color:${rest.c}">${tag}</span> · ${rest.t}</p>`; }
+function note(t){ return `<p class="eqnote">${t}</p>`; }
+
+const SLIDER_STORY = {
+  wl12: s => head('(W/L)₁₂',{c:'#BA7517',t:'M1,M2 input pair → g<sub>m2</sub>, GBW, ICMR⁻'})
+    + row('g<sub>m2</sub> = √(2·µCoxN·(W/L)₁₂·I<sub>D1</sub>)', `= √(2·170µ·${s.WL12}·${uA(s.ID1)}µ) = ${uA(s.gm2)} µA/V`)
+    + row('GBW = g<sub>m2</sub>/(2π·C<sub>c</sub>)', `= ${eng(s.GBW)} &nbsp;(∝ √(W/L)₁₂)`)
+    + row('V<sub>ov12</sub> = √(2·I<sub>D1</sub>/(µCoxN·(W/L)₁₂))', `= ${f(s.Vov12)} V → ICMR⁻ = ${f(s.ICMRn)} V`)
+    + note('↑(W/L)₁₂ ⇒ g<sub>m2</sub>∝√(W/L) so <b>GBW rises</b> and the <b>ICMR⁻ floor drops</b> (more input range). Cost: <b>PM falls</b>, because p₂ and z₁ are fixed while GBW moves right. DC gain barely moves — R<sub>o1</sub> is set by λ and I<sub>D1</sub>, not width.'),
+
+  wl34: s => head('(W/L)₃₄',{c:'#534AB7',t:'M3,M4 mirror load → ICMR⁺ ceiling'})
+    + row('V<sub>ov34</sub> = √(2·I<sub>D1</sub>/(µCoxP·(W/L)₃₄))', `= ${f(s.Vov34)} V`)
+    + row('ICMR⁺ = VDD − |VTP| − V<sub>ov34</sub> + VTN', `= 3.3 − 0.71 − ${f(s.Vov34)} + 0.54 = ${f(s.ICMRp)} V`)
+    + note('↑(W/L)₃₄ ⇒ V<sub>ov34</sub> shrinks ⇒ <b>ICMR⁺ ceiling rises</b> (input can swing higher before M3/M4 leave saturation). Stage-1 gain is unchanged (g<sub>ds4</sub>=λP·I<sub>D1</sub> is fixed). Wider mirror devices add gate capacitance, lowering the mirror pole — kept far off-screen in this model.'),
+
+  wl5: s => head('(W/L)₅',{c:'#888780',t:'M5 tail source → ICMR⁻ headroom'})
+    + row('V<sub>ov5</sub> = √(2·I₅/(µCoxN·(W/L)₅))', `= √(2·${val('i5')}µ/(170µ·${s.WL5})) = ${f(s.Vov5)} V`)
+    + row('ICMR⁻ = VTN + V<sub>ov12</sub> + V<sub>ov5</sub>', `= 0.54 + ${f(s.Vov12)} + ${f(s.Vov5)} = ${f(s.ICMRn)} V`)
+    + note('↑(W/L)₅ ⇒ V<sub>ov5</sub> shrinks ⇒ <b>ICMR⁻ floor drops</b> (good). V<sub>ov5</sub> is also the minimum V<sub>cs</sub> headroom M5 needs to stay in saturation — too small a width starves that headroom. No effect on gain, GBW, or slew.'),
+
+  wl6: s => head('(W/L)₆',{c:'#D85A30',t:'M6 2nd-stage driver → the best knob'})
+    + row('g<sub>m6</sub> = √(2·µCoxP·(W/L)₆·I<sub>D6</sub>)', `= ${uA(s.gm6)} µA/V → A<sub>v2</sub> = g<sub>m6</sub>·R<sub>o2</sub> = ${f(s.AV2,1)}`)
+    + row('p₂ = g<sub>m6</sub>/(2π·C<sub>L</sub>) , z₁ = g<sub>m6</sub>/(2π·C<sub>c</sub>)', `p₂=${eng(s.p2)} , z₁=${eng(s.z1)}`)
+    + row('V<sub>out,max</sub> = VDD − V<sub>ov6</sub>', `= 3.3 − ${f(s.Vov6)} = ${f(s.VoutMax)} V`)
+    + note('The standout knob: ↑(W/L)₆ raises g<sub>m6</sub>, so <b>gain ↑</b>, and pushes p₂ and z₁ to higher frequency, so <b>PM ↑ too</b> — both improve together, since GBW (=g<sub>m2</sub>/2πC<sub>c</sub>) has no g<sub>m6</sub> term. It also lifts V<sub>out,max</sub>.'),
+
+  wl7: s => head('(W/L)₇',{c:'#1D9E75',t:'M7 2nd-stage load → bottom of swing'})
+    + row('V<sub>ov7</sub> = √(2·I<sub>D6</sub>/(µCoxN·(W/L)₇))', `= ${f(s.Vov7)} V`)
+    + row('V<sub>out,min</sub> = V<sub>ov7</sub>', `= ${f(s.VoutMin)} V → swing = ${f(s.swing)} V`)
+    + note('↑(W/L)₇ ⇒ V<sub>ov7</sub> shrinks ⇒ <b>V<sub>out,min</sub> drops</b>, so the output can swing closer to ground → more total swing. Gain unaffected (g<sub>ds7</sub>=λN·I<sub>D6</sub> fixed).'),
+
+  i5: s => head('I₅',{c:'#888780',t:'tail current → slew, GBW, gain, ICMR (all at once)'})
+    + row('SR = I₅/C<sub>c</sub>', `= ${val('i5')}µ/${f(s.Cc*1e12,1)}p = ${f(s.SR/1e6,1)} V/µs &nbsp;(∝ I₅)`)
+    + row('g<sub>m2</sub> ∝ √I₅ , GBW ∝ √I₅', `GBW = ${eng(s.GBW)}`)
+    + row('R<sub>o1</sub> = 1/((λN+λP)·I<sub>D1</sub>) ⇒ A<sub>v1</sub> ∝ 1/√I₅', `A<sub>v1</sub> = ${f(s.AV1,1)}`)
+    + note('I₅ is the busiest knob. ↑I₅ ⇒ <b>slew rate ↑</b> (linear) and <b>GBW ↑</b> (√), but <b>stage-1 gain ↓</b> (g<sub>m2</sub>∝√I₅ while R<sub>o1</sub>∝1/I₅ → net ∝1/√I₅) and <b>both V<sub>ov5</sub> and V<sub>ov12</sub> grow</b>, pushing the ICMR⁻ floor up. Classic speed-vs-gain-vs-range tradeoff.'),
+
+  id6: s => head('I_D6',{c:'#D85A30',t:'2nd-stage current → gain, PM, swing'})
+    + row('g<sub>m6</sub> ∝ √I<sub>D6</sub> , R<sub>o2</sub> ∝ 1/I<sub>D6</sub> ⇒ A<sub>v2</sub> ∝ 1/√I<sub>D6</sub>', `A<sub>v2</sub> = ${f(s.AV2,1)}`)
+    + row('p₂ = g<sub>m6</sub>/(2π·C<sub>L</sub>) ∝ √I<sub>D6</sub>', `= ${eng(s.p2)} → PM ↑`)
+    + row('V<sub>ov6</sub>,V<sub>ov7</sub> ∝ √I<sub>D6</sub>', `swing = ${f(s.swing)} V (shrinks at both ends)`)
+    + note('↑I<sub>D6</sub> moves p₂ out so <b>PM improves</b>, and raises the output large-signal slew I<sub>D6</sub>/C<sub>L</sub>, but <b>stage-2 gain falls</b> and <b>output swing shrinks</b> (both V<sub>ov6</sub> and V<sub>ov7</sub> grow). GBW is untouched.'),
+
+  cc: s => head('C_c',{c:'#378ADD',t:'Miller cap → the primary stability knob'})
+    + row('GBW = g<sub>m2</sub>/(2π·C<sub>c</sub>) ∝ 1/C<sub>c</sub>', `= ${eng(s.GBW)}`)
+    + row('SR = I₅/C<sub>c</sub> ∝ 1/C<sub>c</sub>', `= ${f(s.SR/1e6,1)} V/µs`)
+    + row('z₁ = g<sub>m6</sub>/(2π·C<sub>c</sub>)', `= ${eng(s.z1)}`)
+    + note('The dominant pole-splitting knob. ↑C<sub>c</sub> ⇒ GBW drops ⇒ at the lower crossover the phase lag from p₂/z₁ is smaller ⇒ <b>PM rises strongly</b>. The cost is exact and unavoidable: <b>slew rate halves when C<sub>c</sub> doubles</b>. DC gain is unchanged.'),
+
+  cl: s => head('C_L',{c:'#5F5E5A',t:'load cap → usually not yours to choose'})
+    + row('p₂ = g<sub>m6</sub>/(2π·C<sub>L</sub>) ∝ 1/C<sub>L</sub>', `= ${eng(s.p2)}`)
+    + row('output slew = I<sub>D6</sub>/C<sub>L</sub>', `= ${f(s.SRout/1e6,1)} V/µs`)
+    + note('↑C<sub>L</sub> drags the output pole p₂ to lower frequency ⇒ more lag at crossover ⇒ <b>PM drops sharply</b>. GBW is unaffected. C<sub>L</sub> is set by whatever you drive, so characterise it <i>before</i> fixing C<sub>c</sub>.'),
+
+  vcm: s => head('V_cm',{c:'#5c5a53',t:'input common-mode → keeps M5 & M1/M2 in sat'})
+    + row('valid window: ICMR⁻ ≤ V<sub>cm</sub> ≤ ICMR⁺', `${f(s.ICMRn)} V … ${f(s.ICMRp)} V`)
+    + note('Operating-point control (see the Schematic). Below ICMR⁻ the tail M5 drops into triode; above ICMR⁺ the mirror M3/M4 leave saturation. Watch the transistor cards recolor as you sweep it.'),
+
+  vd: s => head('V_d',{c:'#5c5a53',t:'differential input Vin⁺−Vin⁻'})
+    + row('full steering when |V<sub>d</sub>| ≳ √2·V<sub>ov12</sub>', `≈ ${f(Math.SQRT2*s.Vov12)} V`)
+    + note('Large-signal differential drive. Beyond ≈√2·V<sub>ov12</sub> all the tail current steers to one side and the other input device shuts OFF — visible as a region change in the Schematic tab.'),
+
+  vout: s => head('V_out',{c:'#5c5a53',t:'output node → 2nd-stage saturation'})
+    + row('valid: V<sub>ov7</sub> ≤ V<sub>out</sub> ≤ VDD − V<sub>ov6</sub>', `${f(s.VoutMin)} V … ${f(s.VoutMax)} V`)
+    + note('Sets which 2nd-stage device is in saturation. Too high and M6 enters triode; too low and M7 does. The green band in the Headroom tab is exactly this window.'),
+};
+
+const METRIC_STORY = {
+  gain: s => head('DC Gain',{c:'#2563a8',t:`${f(s.gainDB,1)} dB`})
+    + row('A<sub>v</sub> = g<sub>m2</sub>·R<sub>o1</sub> · g<sub>m6</sub>·R<sub>o2</sub>')
+    + row('stage 1: g<sub>m2</sub>·R<sub>o1</sub>', `= ${uA(s.gm2)}µ/V · ${(s.Ro1/1e6).toFixed(2)}MΩ = ${f(s.AV1,1)} (${(20*Math.log10(s.AV1)).toFixed(1)} dB)`)
+    + row('stage 2: g<sub>m6</sub>·R<sub>o2</sub>', `= ${uA(s.gm6)}µ/V · ${(s.Ro2/1e3).toFixed(0)}kΩ = ${f(s.AV2,1)} (${(20*Math.log10(s.AV2)).toFixed(1)} dB)`)
+    + row('A<sub>v</sub> (total)', `= ${s.AV.toFixed(0)} V/V = ${f(s.gainDB,1)} dB`)
+    + note('R<sub>o</sub> = 1/((λN+λP)·I<sub>D</sub>) for each stage. Raise gain via wider M6 (g<sub>m6</sub>↑) or lower currents (R<sub>o</sub>↑). For more, add cascodes or a gain-boost stage.'),
+
+  pm: s => head('Phase Margin',{c: s.PM<45?'#b3261e':s.PM<52?'#9a6500':'#0f6e56', t:`${f(s.PM,1)}°`})
+    + row('PM = 90° − atan(GBW/p₂) − atan(GBW/z₁)')
+    + row('GBW', `= ${eng(s.GBW)}`)
+    + row('p₂ = g<sub>m6</sub>/(2π·C<sub>L</sub>)', `= ${eng(s.p2)} → lag ${f(s.ph_p2,1)}°`)
+    + row('z₁ = g<sub>m6</sub>/(2π·C<sub>c</sub>) (RHP)', `= ${eng(s.z1)} → lag ${f(s.ph_z1,1)}°`)
+    + note('The RHP Miller zero z₁ adds phase <i>lag</i> — that is why it hurts. Push p₂ and z₁ out (wider M6 / more I<sub>D6</sub>) or pull GBW in (larger C<sub>c</sub>). A series nulling resistor R<sub>z</sub>=1/g<sub>m6</sub> cancels z₁ in a real design. Aim ≥ 60°.'),
+
+  gbw: s => head('GBW',{c:'#2563a8',t:`${eng(s.GBW)}`})
+    + row('GBW = g<sub>m2</sub>/(2π·C<sub>c</sub>)', `= ${uA(s.gm2)}µ / (2π·${f(s.Cc*1e12,1)}p) = ${eng(s.GBW)}`)
+    + note('Set only by the input-pair transconductance and the compensation cap. Speed up with wider M1/M2, more I₅, or smaller C<sub>c</sub> — each of which has a side-effect elsewhere (PM or ICMR or slew).'),
+
+  sr: s => head('Slew Rate',{c:'#2563a8',t:`${f(s.SR/1e6,1)} V/µs`})
+    + row('SR = I₅ / C<sub>c</sub>', `= ${val('i5')}µ / ${f(s.Cc*1e12,1)}p = ${f(s.SR/1e6,1)} V/µs`)
+    + row('output limit = I<sub>D6</sub> / C<sub>L</sub>', `= ${f(s.SRout/1e6,1)} V/µs`)
+    + note('The first-stage tail can only dump I₅ into C<sub>c</sub>, capping how fast the output ramps — usually the binding limit. The actual SR is the smaller of the two shown. Raise it with more I₅ or smaller C<sub>c</sub> (which then costs phase margin).'),
+
+  icmrn: s => head('ICMR⁻',{c: s.ICMRn>0.85?'#b3261e':s.ICMRn>0.75?'#9a6500':'#0f6e56', t:`${f(s.ICMRn)} V`})
+    + row('ICMR⁻ = VTN + V<sub>ov12</sub> + V<sub>ov5</sub>', `= 0.54 + ${f(s.Vov12)} + ${f(s.Vov5)} = ${f(s.ICMRn)} V`)
+    + note('<b>Hard floor = VTN (0.54 V)</b> — irreducible for an NMOS pair. Lower the rest by widening M1/M2 and M5. Real silicon sits ~30–60 mV higher from body effect + short-channel V<sub>T</sub> shifts (the Headroom tab explains this).'),
+
+  icmrp: s => head('ICMR⁺',{c:'#0f6e56',t:`${f(s.ICMRp)} V`})
+    + row('ICMR⁺ = VDD − |VTP| − V<sub>ov34</sub> + VTN', `= 3.3 − 0.71 − ${f(s.Vov34)} + 0.54 = ${f(s.ICMRp)} V`)
+    + note('The upper input limit, set by the PMOS mirror leaving saturation. Push it higher by widening M3/M4 (V<sub>ov34</sub>↓). The usable common-mode span is ICMR⁺ − ICMR⁻ = '+f(s.ICMRp-s.ICMRn)+' V.'),
+
+  swing: s => head('Output Swing',{c:'#0f6e56',t:`${f(s.swing)} V`})
+    + row('V<sub>out,min</sub> = V<sub>ov7</sub>', `= ${f(s.VoutMin)} V`)
+    + row('V<sub>out,max</sub> = VDD − V<sub>ov6</sub>', `= 3.3 − ${f(s.Vov6)} = ${f(s.VoutMax)} V`)
+    + row('swing = V<sub>out,max</sub> − V<sub>out,min</sub>', `= ${f(s.swing)} V`)
+    + note('Both rails cost one V<sub>ov</sub>. Widen M6 to reach higher, widen M7 to reach lower. Lower I<sub>D6</sub> also shrinks both V<sub>ov</sub> — but at the cost of stage-2 gain.'),
+};
+
+let lastStory=null; // {t:'s'|'m', k}
+function renderStory(s){
+  const el=$('eqpanel');
+  if(!lastStory){ el.innerHTML=INTRO; return; }
+  el.innerHTML = lastStory.t==='s' ? SLIDER_STORY[lastStory.k](s) : METRIC_STORY[lastStory.k](s);
+  // highlight active slider name
+  document.querySelectorAll('.slname').forEach(n=>n.classList.toggle('active', lastStory.t==='s'&&n.dataset.s===lastStory.k));
+}
+
+/* ===================== Bode plot ===================== */
+const BOD=$('bode'), bcx=BOD.getContext('2d'); BOD.width=640; BOD.height=264;
+const BPL=54,BPR=12,BPT=20,BPW=640-BPL-BPR,BH1=152,BGAP=10,BH2=70;
+const xpx=fz=>BPL+BPW*(Math.log10(fz)-1)/8;
+const gpx=d=>BPT+BH1*(1-(d+20)/130);
+const ppx=p=>BPT+BH1+BGAP+BH2*(1-(p+190)/200);
+function magDB(fz,p){
+  const m=p.AV*Math.sqrt(1+(fz/p.z1)**2)/(Math.sqrt(1+(fz/p.p1)**2)*Math.sqrt(1+(fz/p.p2)**2)*Math.sqrt(1+(fz/p.pm_f)**2));
+  return 20*Math.log10(Math.max(m,1e-12));
+}
+const phDeg=(fz,p)=>-(Math.atan(fz/p.p1)+Math.atan(fz/p.p2)+Math.atan(fz/p.z1)+Math.atan(fz/p.pm_f))*180/PI;
+function drawBode(p){
+  const dk=dark(), tc=dk?'#c2c0b6':'#3d3d3a', gc=dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
+  bcx.clearRect(0,0,640,264); bcx.font='11px sans-serif';
+  bcx.strokeStyle=gc; bcx.lineWidth=0.5;
+  [-20,0,20,40,60,80,100].forEach(d=>{const y=gpx(d);if(y<BPT-2||y>BPT+BH1+2)return;
+    bcx.beginPath();bcx.moveTo(BPL,y);bcx.lineTo(BPL+BPW,y);bcx.stroke();
+    bcx.fillStyle=tc;bcx.textAlign='right';bcx.fillText(d,BPL-4,y+4);});
+  [-180,-135,-90,-45,0].forEach(ph=>{const y=ppx(ph);if(y<BPT+BH1+BGAP-2||y>BPT+BH1+BGAP+BH2+2)return;
+    bcx.beginPath();bcx.moveTo(BPL,y);bcx.lineTo(BPL+BPW,y);bcx.stroke();
+    bcx.fillStyle=tc;bcx.textAlign='right';bcx.fillText(ph+'°',BPL-4,y+4);});
+  [1e1,1e2,1e3,1e4,1e5,1e6,1e7,1e8,1e9].forEach(fz=>{const x=xpx(fz);
+    bcx.beginPath();bcx.moveTo(x,BPT);bcx.lineTo(x,BPT+BH1+BGAP+BH2);bcx.stroke();
+    const lb=fz>=1e6?(fz/1e6)+'M':fz>=1e3?(fz/1e3)+'k':fz+'';
+    bcx.fillStyle=tc;bcx.textAlign='center';bcx.fillText(lb+'Hz',x,BPT+BH1+BGAP+BH2+14);});
+  bcx.setLineDash([4,3]);bcx.strokeStyle='rgba(224,75,74,0.35)';bcx.lineWidth=0.8;
+  bcx.beginPath();bcx.moveTo(BPL,gpx(0));bcx.lineTo(BPL+BPW,gpx(0));bcx.stroke();
+  bcx.beginPath();bcx.moveTo(BPL,ppx(-135));bcx.lineTo(BPL+BPW,ppx(-135));bcx.stroke();
+  bcx.beginPath();bcx.moveTo(BPL,ppx(-180));bcx.lineTo(BPL+BPW,ppx(-180));bcx.stroke();
+  bcx.setLineDash([]);
+  [{f:p.p2,col:'#1D9E75',lb:'p₂'},{f:p.z1,col:'#D85A30',lb:'z₁'},{f:p.pm_f,col:'#534AB7',lb:'pₘ'},{f:p.GBW,col:'#BA7517',lb:'GBW'}].forEach(m=>{
+    const x=xpx(m.f);if(x<BPL||x>BPL+BPW)return;
+    bcx.setLineDash([5,4]);bcx.strokeStyle=m.col;bcx.lineWidth=1.2;
+    bcx.beginPath();bcx.moveTo(x,BPT);bcx.lineTo(x,BPT+BH1+BGAP+BH2);bcx.stroke();bcx.setLineDash([]);
+    bcx.fillStyle=m.col;bcx.textAlign='center';bcx.font='10px sans-serif';bcx.fillText(m.lb,x,BPT-4);});
+  bcx.strokeStyle='#378ADD';bcx.lineWidth=2.2;bcx.beginPath();let fg=true;
+  for(let px=0;px<=BPW;px++){const fz=Math.pow(10,1+px/BPW*8);
+    const y=Math.max(BPT-2,Math.min(BPT+BH1+2,gpx(magDB(fz,p))));fg?(bcx.moveTo(BPL+px,y),fg=false):bcx.lineTo(BPL+px,y);}
+  bcx.stroke();
+  bcx.strokeStyle='#D85A30';bcx.lineWidth=2;bcx.beginPath();let fp=true;
+  for(let px=0;px<=BPW;px++){const fz=Math.pow(10,1+px/BPW*8);
+    const y=Math.max(BPT+BH1+BGAP-2,Math.min(BPT+BH1+BGAP+BH2+2,ppx(phDeg(fz,p))));fp?(bcx.moveTo(BPL+px,y),fp=false):bcx.lineTo(BPL+px,y);}
+  bcx.stroke();
+  const gx=xpx(p.GBW);
+  if(gx>=BPL&&gx<=BPL+BPW){
+    const y180=ppx(-180),yph=ppx(phDeg(p.GBW,p));
+    bcx.strokeStyle='#BA7517';bcx.lineWidth=1.5;
+    bcx.beginPath();bcx.moveTo(gx+9,y180);bcx.lineTo(gx+9,yph);bcx.stroke();
+    bcx.beginPath();bcx.moveTo(gx+5,y180);bcx.lineTo(gx+13,y180);bcx.stroke();
+    bcx.beginPath();bcx.moveTo(gx+5,yph);bcx.lineTo(gx+13,yph);bcx.stroke();
+    bcx.fillStyle='#BA7517';bcx.textAlign='left';bcx.font='bold 10px sans-serif';
+    bcx.fillText('PM='+p.PM.toFixed(1)+'°',gx+15,(y180+yph)/2+4);
+  }
+  const bc=dk?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.15)';
+  bcx.strokeStyle=bc;bcx.lineWidth=0.5;
+  bcx.strokeRect(BPL,BPT,BPW,BH1);bcx.strokeRect(BPL,BPT+BH1+BGAP,BPW,BH2);
+  bcx.save();bcx.translate(12,BPT+BH1/2);bcx.rotate(-PI/2);bcx.textAlign='center';bcx.fillStyle='#378ADD';bcx.fillText('Gain (dB)',0,0);bcx.restore();
+  bcx.save();bcx.translate(12,BPT+BH1+BGAP+BH2/2);bcx.rotate(-PI/2);bcx.textAlign='center';bcx.fillStyle='#D85A30';bcx.fillText('Phase (°)',0,0);bcx.restore();
+}
+
+/* ===================== Headroom bars ===================== */
+const HDR=$('hr'), hcx=HDR.getContext('2d'); HDR.width=640; HDR.height=210;
+function drawHR(p){
+  const dk=dark(), tc=dk?'#c2c0b6':'#3d3d3a';
+  hcx.clearRect(0,0,640,210);
+  const C_DEAD=dk?'rgba(180,50,40,0.45)':'rgba(220,60,50,0.20)';
+  const C_GOOD=dk?'rgba(22,140,100,0.50)':'rgba(22,163,74,0.22)';
+  const C_WARN=dk?'rgba(160,100,20,0.45)':'rgba(200,130,20,0.22)';
+  const BDR=dk?'rgba(255,255,255,0.20)':'rgba(0,0,0,0.20)', BDLINE=dk?'rgba(255,255,255,0.40)':'rgba(0,0,0,0.35)';
+  const BH=158,BT=32,SC=BH/VDD; const vpy=v=>BT+BH-v*SC;
+  function bar(L,W,segs){
+    segs.forEach(s=>{const yt=vpy(s.v1),yb=vpy(s.v0);hcx.fillStyle=s.fill;hcx.fillRect(L,yt,W,yb-yt);});
+    hcx.strokeStyle=BDR;hcx.lineWidth=0.5;hcx.strokeRect(L,BT,W,BH);
+    hcx.fillStyle=tc;hcx.font='10px sans-serif';hcx.textAlign='right';
+    hcx.fillText('3.3V',L-4,BT+8);hcx.fillText('0V',L-4,BT+BH+4);
+    segs.forEach(s=>{if(s.v1>0.01&&s.v1<3.29){const y=vpy(s.v1);
+      hcx.strokeStyle=BDLINE;hcx.lineWidth=1;hcx.beginPath();hcx.moveTo(L,y);hcx.lineTo(L+W,y);hcx.stroke();
+      hcx.fillStyle=tc;hcx.font='10px sans-serif';hcx.textAlign='left';hcx.fillText(f(s.v1)+'V',L+W+4,y+4);}});
+    segs.forEach(s=>{const yt=vpy(s.v1),yb=vpy(s.v0),h=yb-yt;if(!s.lbl||h<14)return;
+      hcx.fillStyle=tc;hcx.font='bold 9px sans-serif';hcx.textAlign='center';hcx.fillText(s.lbl,L+W/2,(yt+yb)/2-3);
+      if(s.sub&&h>26){hcx.font='9px sans-serif';hcx.fillText(s.sub,L+W/2,(yt+yb)/2+8);}});
+    const g=segs.find(s=>s.fill===C_GOOD);
+    if(g){hcx.fillStyle=dk?'rgba(22,140,100,0.9)':'rgba(15,110,86,0.9)';hcx.font='bold 11px sans-serif';hcx.textAlign='center';
+      hcx.fillText('range: '+f(g.v1-g.v0)+' V',L+W/2,BT+BH+18);}
+  }
+  function title(L,W,t){hcx.fillStyle=tc;hcx.font='500 11px sans-serif';hcx.textAlign='center';hcx.fillText(t,L+W/2,BT-12);}
+  title(62,98,'Input CM range');
+  bar(62,98,[
+    {v0:0,v1:p.ICMRn,fill:C_DEAD,lbl:'dead',sub:f(p.ICMRn)+'V'},
+    {v0:p.ICMRn,v1:p.ICMRp,fill:C_GOOD,lbl:'ICMR'},
+    {v0:p.ICMRp,v1:3.3,fill:C_DEAD,lbl:'dead'}]);
+  const VGS1=VTN+p.Vov12, VD1=VDD-VTP-p.Vov34;
+  title(248,98,'Stage-1 stack');
+  bar(248,98,[
+    {v0:0,v1:p.Vov5,fill:C_WARN,lbl:'Vov5',sub:f(p.Vov5)+'V'},
+    {v0:p.Vov5,v1:p.Vov5+VGS1,fill:C_WARN,lbl:'VGS1'},
+    {v0:p.Vov5+VGS1,v1:VD1,fill:C_GOOD,lbl:'margin'},
+    {v0:VD1,v1:VDD-p.Vov34,fill:C_WARN,lbl:'VDS3'},
+    {v0:VDD-p.Vov34,v1:3.3,fill:C_DEAD,lbl:'|VTP|'}]);
+  title(434,98,'Output swing');
+  bar(434,98,[
+    {v0:0,v1:p.VoutMin,fill:C_DEAD,lbl:'Vov7',sub:f(p.Vov7)+'V'},
+    {v0:p.VoutMin,v1:p.VoutMax,fill:C_GOOD,lbl:'swing'},
+    {v0:p.VoutMax,v1:3.3,fill:C_DEAD,lbl:'Vov6'}]);
+  hcx.strokeStyle=BDR;hcx.lineWidth=0.5;hcx.setLineDash([2,3]);
+  hcx.beginPath();hcx.moveTo(50,BT);hcx.lineTo(640,BT);hcx.stroke();
+  hcx.beginPath();hcx.moveTo(50,BT+BH);hcx.lineTo(640,BT+BH);hcx.stroke();hcx.setLineDash([]);
+}
+
+/* ===================== Schematic + regions ===================== */
+const SCH=$('sch'), scx=SCH.getContext('2d'); SCH.width=640; SCH.height=252;
+function drawSchematic(p){
+  const dk=dark(), tc=dk?'#c2c0b6':'#3d3d3a', wc=dk?'rgba(255,255,255,0.22)':'rgba(0,0,0,0.25)', gc=dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
+  const bgs=dk?'#0A4435':'#B9EDD8',bgr=dk?'#5A1010':'#FFD9D2',bgo=dk?'#3A3835':'#EDEDEB';
+  const fgs=dk?'#9FE1CB':'#0A5C42',fgr=dk?'#FFB8A8':'#922010',fgo=dk?'#A09C98':'#68645E';
+  const RC=r=>({bg:{SAT:bgs,TRI:bgr,OFF:bgo}[r],fg:{SAT:fgs,TRI:fgr,OFF:fgo}[r],bd:{SAT:'#1D9E75',TRI:'#D85A30',OFF:'#888780'}[r]});
+  scx.clearRect(0,0,640,252);
+  const W=wc;
+  function wire(a,b,c,d){scx.strokeStyle=W;scx.lineWidth=1;scx.setLineDash([]);scx.beginPath();scx.moveTo(a,b);scx.lineTo(c,d);scx.stroke();}
+  function dwire(a,b,c,d){scx.strokeStyle=dk?'rgba(186,117,23,0.5)':'rgba(186,117,23,0.6)';scx.lineWidth=1;scx.setLineDash([4,3]);scx.beginPath();scx.moveTo(a,b);scx.lineTo(c,d);scx.stroke();scx.setLineDash([]);}
+  function dot(x,y,c){scx.fillStyle=c;scx.beginPath();scx.arc(x,y,3,0,2*PI);scx.fill();}
+  function lab(x,y,t,c,al){scx.fillStyle=c||tc;scx.font='9.5px sans-serif';scx.textAlign=al||'center';scx.fillText(t,x,y);}
+  function mos(bx,by,bw,bh,m){const{bg,bd,fg}=RC(m.reg);scx.fillStyle=bg;scx.strokeStyle=bd;scx.lineWidth=1.5;
+    scx.beginPath();scx.roundRect(bx,by,bw,bh,5);scx.fill();scx.stroke();
+    scx.fillStyle=fg;scx.font='bold 11px sans-serif';scx.textAlign='center';scx.fillText(m.id,bx+bw/2,by+13);
+    scx.font='9px sans-serif';scx.fillText({SAT:'SAT ✓',TRI:'TRIODE ✗',OFF:'OFF ✗'}[m.reg],bx+bw/2,by+25);}
+
+  scx.fillStyle=dk?'rgba(0,0,0,0.2)':'rgba(0,0,0,0.02)';scx.fillRect(0,0,640,252);
+  scx.strokeStyle=dk?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.3)';scx.lineWidth=1.5;
+  scx.beginPath();scx.moveTo(40,12);scx.lineTo(600,12);scx.stroke();
+  scx.beginPath();scx.moveTo(40,240);scx.lineTo(600,240);scx.stroke();
+  lab(20,16,'VDD',tc,'left');lab(20,240,'VSS',tc,'left');
+  scx.fillStyle=gc;scx.fillRect(50,4,230,244);
+  scx.fillStyle=dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.03)';scx.fillRect(360,4,230,244);
+  lab(165,9,'── Stage 1 ──',dk?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.2)');
+  lab(475,9,'── Stage 2 ──',dk?'rgba(255,255,255,0.25)':'rgba(0,0,0,0.2)');
+
+  const BW=62,BH=32;
+  const M3={bx:60,by:30},M4={bx:165,by:30},M1={bx:60,by:150},M2={bx:165,by:150},M5={bx:112,by:196};
+  const M6={bx:400,by:30},M7={bx:400,by:182};const OX=540,OY=126;
+  wire(M3.bx+BW/2,12,M3.bx+BW/2,30);wire(M4.bx+BW/2,12,M4.bx+BW/2,30);wire(M6.bx+BW/2,12,M6.bx+BW/2,30);
+  wire(M5.bx+BW/2,228,M5.bx+BW/2,240);wire(M7.bx+BW/2,214,M7.bx+BW/2,240);
+  const VD1X=M3.bx+BW/2;wire(VD1X,62,VD1X,150);dot(VD1X,100,dk?'#9FE1CB':'#1D9E75');lab(VD1X+2,92,'VD1='+f(p.VD1,2)+'V',dk?'#9FE1CB':'#1D9E75');
+  const VD4X=M4.bx+BW/2;wire(VD4X,62,VD4X,150);dot(VD4X,100,'#BA7517');lab(VD4X+2,92,'VD4='+f(p.VD4,2)+'V','#BA7517');
+  wire(VD1X,100,M4.bx+BW/2-31,100);scx.strokeStyle=W;scx.lineWidth=0.5;scx.setLineDash([2,2]);scx.beginPath();scx.moveTo(M4.bx-1,100);scx.lineTo(M4.bx-1,46);scx.stroke();scx.setLineDash([]);
+  const VcsX=M5.bx+BW/2;wire(M1.bx+BW/2,182,VcsX,180);wire(M2.bx+BW/2,182,VcsX,180);wire(VcsX,180,VcsX,196);dot(VcsX,180,dk?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.4)');lab(VcsX+28,184,'Vcs='+f(p.Vcs,2)+'V',tc,'left');
+  const mm=p.mos,m1=mm[0],m2=mm[1];
+  const g1=m1.reg==='OFF'?fgr:tc,g2=m2.reg==='OFF'?fgr:tc;
+  scx.strokeStyle=g1;scx.lineWidth=0.8;scx.setLineDash([3,2]);scx.beginPath();scx.moveTo(50,166);scx.lineTo(60,166);scx.stroke();scx.setLineDash([]);lab(47,170,'Vin⁻='+f(p.Vinn,2)+'V',g1,'right');
+  scx.strokeStyle=g2;scx.lineWidth=0.8;scx.setLineDash([3,2]);scx.beginPath();scx.moveTo(235,166);scx.lineTo(245,166);scx.stroke();scx.setLineDash([]);lab(248,170,'Vin⁺='+f(p.Vinp,2)+'V',g2,'left');
+  wire(VD4X,100,300,100);wire(300,100,300,46);wire(300,46,400,46);
+  dwire(OX,OY,OX,46);dwire(OX,46,380,46);lab(460,44,'Cc',dk?'rgba(186,117,23,0.8)':'rgba(150,90,10,0.8)');
+  wire(M6.bx+BW/2,62,M6.bx+BW/2,182);dot(M6.bx+BW/2,OY,dk?'rgba(255,255,255,0.6)':'rgba(0,0,0,0.5)');wire(M6.bx+BW/2,OY,OX,OY);dot(OX,OY,'#D85A30');lab(OX+6,OY,'Vout='+f(p.Vout,2)+'V','#D85A30','left');
+  [['M3',M3],['M4',M4],['M1',M1],['M2',M2],['M5',M5],['M6',M6],['M7',M7]].forEach(([id,pos])=>{const mo=mm.find(m=>m.id===id);if(mo)mos(pos.bx,pos.by,BW,BH,mo);});
+  const m5=mm[4];scx.fillStyle=dk?'rgba(255,255,255,0.35)':'rgba(0,0,0,0.3)';scx.font='9px sans-serif';scx.textAlign='left';
+  scx.fillText(m1.ID.toFixed(1)+'µA',M1.bx+BW+2,166);scx.fillText(m2.ID.toFixed(1)+'µA',M2.bx+BW+2,166);scx.fillText(m5.ID.toFixed(0)+'µA',M5.bx+BW+2,214);
+}
+function buildRegionCards(p){
+  const g=$('rcards');g.innerHTML='';
+  const labs={SAT:'SAT ✓',TRI:'TRIODE ✗',OFF:'OFF ✗'},cls={SAT:'sat',TRI:'tri',OFF:'off'};
+  p.mos.forEach(m=>{
+    const mgcls=m.mg===999||m.mg>0.1?'mgok':m.mg>0?'mgwn':'mgbad';
+    const c=document.createElement('div');c.className='rc c-'+cls[m.reg];
+    c.innerHTML=`<p class="cn">${m.id}</p><p class="cs">${m.sub}</p>
+      <span class="cb b-${cls[m.reg]}">${labs[m.reg]}</span>
+      <div class="cv">${m.type==='P'?'|VGS|':'VGS'}=${typeof m.VGS==='number'?f(m.VGS):'—'}V<br>
+      ${m.type==='P'?'|VDS|':'VDS'}=${f(m.VDS)}V<br>Vov=${f(m.Vov)}V<br>
+      <span class="${mgcls}">margin=${m.mg===999?'+∞':(m.mg>0?'+':'')+f(m.mg)}V</span></div>
+      <div class="fx ${m.fxc}">${m.fx}</div>`;
+    g.appendChild(c);
+  });
+}
+
+/* ===================== ICMR target table (Headroom tab) ===================== */
+function buildICMRtable(s){
+  const tb=$('itbody');tb.innerHTML='';
+  const I5=s.I5, ID1=s.ID1;
+  [0.70,0.75,0.80,0.85,0.90].forEach(T=>{
+    const need=Math.max(0,T-VTN), each=need/2;
+    const w12=each>0.001?Math.ceil(2*ID1/(muN*each*each)):999;
+    const w5 =each>0.001?Math.ceil(2*I5 /(muN*each*each)):999;
+    const ok=s.ICMRn<=T, cur=Math.abs(s.ICMRn-T)<0.03;
+    const tr=document.createElement('tr');if(cur)tr.className='cur';
+    tr.innerHTML=`<td style="font-weight:600">${f(T,2)} V</td><td>${f(need)} V (each ${f(each)})</td>
+      <td style="font-weight:600">${w12}</td><td style="font-weight:600">${w5}</td>
+      <td class="${ok?'y':'n'}">${ok?'✓ met':'✗ widen'}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/* ===================== Sensitivity matrix (file 2, ported) ===================== */
+const SCOLS=[{k:'gain',u:1},{k:'pm',u:1},{k:'gbw',u:null},{k:'icmrn',u:0},{k:'icmrp',u:1},{k:'vmax',u:1},{k:'vmin',u:0},{k:'sr',u:1}];
+const SROWS=[
+  {lbl:'(W/L)₁₂',sub:'M1,M2 diff pair',color:'#BA7517',
+   gain:{d:1,tip:'A_v1 = g_m2·R_o1 ; g_m2 ∝ √(W/L)₁₂. R_o1 is fixed by λ and I_D1, so stage-1 gain rises only as √(W/L).'},
+   pm:{d:-1,tip:'GBW = g_m2/(2πC_c) ∝ √(W/L)₁₂ rises, while p₂ and z₁ stay put → more lag at the higher crossover → PM drops.'},
+   gbw:{d:1,tip:'GBW = g_m2/(2πC_c) ; doubling (W/L)₁₂ raises GBW by √2 ≈ 1.41×.'},
+   icmrn:{d:-1,tip:'ICMR⁻ = VTN + V_ov12 + V_ov5 ; V_ov12 ∝ 1/√(W/L)₁₂ → wider pair lowers the floor (more range = good).'},
+   icmrp:{d:0,tip:'ICMR⁺ has no M1/M2 term.'},vmax:{d:0,tip:'Top of swing depends on M6 only.'},
+   vmin:{d:0,tip:'Bottom of swing depends on M7 only.'},sr:{d:0,tip:'SR = I₅/C_c — independent of (W/L)₁₂.'}},
+  {lbl:'(W/L)₃₄',sub:'M3,M4 mirror load',color:'#534AB7',
+   gain:{d:0,tip:'A_v1 = g_m2/(g_ds2+g_ds4); g_ds4 = λP·I_D1 is fixed → no change.'},
+   pm:{d:-1,tip:'Mirror pole p_mirror ∝ 1/√(W/L)₃₄ — wider devices move it lower → more lag → PM drops (small in this model).'},
+   gbw:{d:0,tip:'Only g_m2 and C_c set GBW.'},icmrn:{d:0,tip:'No V_ov34 term in ICMR⁻.'},
+   icmrp:{d:1,tip:'ICMR⁺ = VDD−|VTP|−V_ov34+VTN ; V_ov34 ∝ 1/√(W/L)₃₄ → ceiling rises.'},
+   vmax:{d:0,tip:'Set by M6.'},vmin:{d:0,tip:'Set by M7.'},sr:{d:0,tip:'No effect.'}},
+  {lbl:'(W/L)₅',sub:'M5 tail source',color:'#888780',
+   gain:{d:0,tip:'M5 is a current source in small-signal; gain is independent of its size.'},
+   pm:{d:0,tip:'No M5 term in any pole/zero.'},gbw:{d:0,tip:'No effect.'},
+   icmrn:{d:-1,tip:'ICMR⁻ = VTN+V_ov12+V_ov5 ; V_ov5 ∝ 1/√(W/L)₅ → wider tail lowers the floor.'},
+   icmrp:{d:0,tip:'No effect.'},vmax:{d:0,tip:'Set by M6.'},vmin:{d:0,tip:'Set by M7.'},sr:{d:0,tip:'I₅ fixed by bias, not by width alone.'}},
+  {lbl:'(W/L)₆',sub:'M6 2nd-stage driver',color:'#D85A30',
+   gain:{d:1,tip:'A_v2 = g_m6·R_o2 ; g_m6 ∝ √(W/L)₆, R_o2 fixed → gain rises.'},
+   pm:{d:1,tip:'p₂ = g_m6/(2πC_L) and z₁ = g_m6/(2πC_c) both ∝ √(W/L)₆ → push right → PM improves. GBW unchanged. Best single knob.'},
+   gbw:{d:0,tip:'No g_m6 term in GBW.'},icmrn:{d:0,tip:'No effect.'},icmrp:{d:0,tip:'No effect.'},
+   vmax:{d:1,tip:'V_out,max = VDD − V_ov6 ; V_ov6 ∝ 1/√(W/L)₆ → top of swing rises.'},
+   vmin:{d:0,tip:'Set by M7.'},sr:{d:0,tip:'No effect on I₅/C_c.'}},
+  {lbl:'(W/L)₇',sub:'M7 2nd-stage load',color:'#1D9E75',
+   gain:{d:0,tip:'g_ds7 = λN·I_D6 is fixed → no change.'},pm:{d:0,tip:'No (W/L)₇ in any pole/zero.'},
+   gbw:{d:0,tip:'No effect.'},icmrn:{d:0,tip:'No effect.'},icmrp:{d:0,tip:'No effect.'},vmax:{d:0,tip:'Set by M6.'},
+   vmin:{d:-1,tip:'V_out,min = V_ov7 ∝ 1/√(W/L)₇ → bottom of swing drops → more swing.'},sr:{d:0,tip:'No effect.'}},
+  {lbl:'I₅',sub:'tail current',color:'#888780',
+   gain:{d:-1,tip:'g_m2 ∝ √I₅ but R_o1 ∝ 1/I₅ → net A_v1 ∝ 1/√I₅ → gain falls.'},
+   pm:{d:-1,tip:'GBW ∝ √I₅ rises (p₂,z₁ fixed) → PM drops.'},gbw:{d:1,tip:'GBW ∝ √I₅.'},
+   icmrn:{d:-1,tip:'V_ov5 and V_ov12 both ∝ √I₅ → ICMR⁻ floor rises (worse range).'},
+   icmrp:{d:0,tip:'No direct term.'},vmax:{d:0,tip:'Set by M6/I_D6.'},vmin:{d:0,tip:'Set by M7/I_D6.'},
+   sr:{d:2,tip:'SR = I₅/C_c ∝ I₅ — the most direct way to raise slew.'}},
+  {lbl:'I_D6',sub:'2nd-stage current',color:'#D85A30',
+   gain:{d:-1,tip:'g_m6 ∝ √I_D6 but R_o2 ∝ 1/I_D6 → A_v2 ∝ 1/√I_D6 → gain falls.'},
+   pm:{d:1,tip:'p₂ = g_m6/(2πC_L) ∝ √I_D6 → pushes right → PM improves.'},gbw:{d:0,tip:'No I_D6 term.'},
+   icmrn:{d:0,tip:'No effect.'},icmrp:{d:0,tip:'No effect.'},
+   vmax:{d:-1,tip:'V_ov6 ∝ √I_D6 → top of swing falls.'},vmin:{d:-1,tip:'V_ov7 ∝ √I_D6 → bottom rises.'},
+   sr:{d:1,tip:'Output slew I_D6/C_L ∝ I_D6 (the small-signal limit stays I₅/C_c).'}},
+  {lbl:'C_c',sub:'Miller cap',color:'#378ADD',
+   gain:{d:0,tip:'No C_c term in DC gain.'},
+   pm:{d:2,tip:'GBW ∝ 1/C_c → lower crossover → far less lag from p₂,z₁ → PM rises strongly. The primary stability knob.'},
+   gbw:{d:-2,tip:'GBW = g_m2/(2πC_c) ∝ 1/C_c — doubling C_c halves GBW.'},
+   icmrn:{d:0,tip:'No effect.'},icmrp:{d:0,tip:'No effect.'},vmax:{d:0,tip:'No effect.'},vmin:{d:0,tip:'No effect.'},
+   sr:{d:-2,tip:'SR = I₅/C_c ∝ 1/C_c — doubling C_c halves slew. The key PM-vs-slew tradeoff.'}},
+  {lbl:'C_L',sub:'load cap (external)',color:'#5F5E5A',
+   gain:{d:0,tip:'No C_L term in DC gain.'},
+   pm:{d:-2,tip:'p₂ = g_m6/(2πC_L) ∝ 1/C_L → output pole moves lower → more lag → PM drops. Usually not yours to set.'},
+   gbw:{d:0,tip:'No C_L term in GBW.'},icmrn:{d:0,tip:'No effect.'},icmrp:{d:0,tip:'No effect.'},
+   vmax:{d:0,tip:'No effect.'},vmin:{d:0,tip:'No effect.'},sr:{d:-1,tip:'Output slew I_D6/C_L ∝ 1/C_L.'}},
+];
+function scls(d,u){if(d===0)return'cn';if(u===null)return'cw';const good=(d>0&&u)||(d<0&&!u);if(d===2||d===-2)return good?'cg2':'cr2';return good?'cg':'cr';}
+const sarrow=d=>({'0':'—','2':'↑↑','1':'↑','-1':'↓','-2':'↓↓'}[d]);
+function buildSens(){
+  const tb=$('sbody');
+  SROWS.forEach(row=>{
+    const tr=document.createElement('tr');
+    const rh=document.createElement('td');rh.className='rh';
+    rh.innerHTML=`<div class="rhn" style="color:${row.color}">${row.lbl}</div><div class="rhs">${row.sub}</div>`;tr.appendChild(rh);
+    SCOLS.forEach(col=>{const cd=row[col.k];const td=document.createElement('td');td.className='cell '+scls(cd.d,col.u);
+      td.textContent=sarrow(cd.d);td.dataset.tip=cd.tip;td.dataset.param=row.lbl+' ('+row.sub+')';td.dataset.metric=col.k;td.dataset.dir=cd.d;
+      td.addEventListener('click',e=>{const t=e.currentTarget,d=+t.dataset.dir;
+        const word=d===0?'No effect':d>0?'Increases':'Decreases';
+        $('sexp').innerHTML=`<p class="et">${t.dataset.param} → ${t.dataset.metric}: <span style="font-family:var(--mono)">${sarrow(d)}</span> ${word}</p><p class="em">${t.dataset.tip}</p>`;});
+      tr.appendChild(td);});
+    tb.appendChild(tr);
+  });
+}
+
+/* ===================== badges + master update ===================== */
+function setBadge(id,v,unit){const el=$(id);if(unit){el.textContent=v;return;}el.textContent='Vov='+f(v);el.className='vbadge '+(v>=0.05&&v<=0.75?'vok':'vwn');}
+function update(){
+  // slider readouts
+  $('vwl12').textContent=val('wl12');$('vwl34').textContent=val('wl34');$('vwl5').textContent=val('wl5');
+  $('vwl6').textContent=val('wl6');$('vwl7').textContent=val('wl7');
+  $('vi5').textContent=val('i5');$('vid6').textContent=val('id6');
+  $('vcc').textContent=val('cc').toFixed(1);$('vcl').textContent=val('cl').toFixed(1);
+  $('vvcm').textContent=val('vcm').toFixed(2);$('vvd').textContent=val('vd').toFixed(2);$('vvout').textContent=val('vout').toFixed(2);
+
+  const s=computeSS();
+  // Vov badges
+  setBadge('bwl12',s.Vov12);setBadge('bwl34',s.Vov34);setBadge('bwl5',s.Vov5);setBadge('bwl6',s.Vov6);setBadge('bwl7',s.Vov7);
+
+  // metric cards
+  $('m-gain').textContent=f(s.gainDB,1);
+  $('m-gbw').textContent=(s.GBW/1e6).toFixed(2);
+  $('m-sr').textContent=(s.SR/1e6).toFixed(1);
+  $('m-swing').textContent=f(s.swing,2);
+  const icn=$('m-icmrn');icn.textContent=f(s.ICMRn,2);icn.style.color=s.ICMRn>0.85?'var(--bad)':s.ICMRn>0.75?'var(--warn)':'var(--ok)';
+  $('m-icmrp').textContent=f(s.ICMRp,2);
+  const pm=$('m-pm'),pmu=$('m-pm-u');pm.textContent=f(s.PM,1)+'°';
+  if(s.PM<45){pm.style.color='var(--bad)';pmu.textContent='unstable';}
+  else if(s.PM<52){pm.style.color='var(--warn)';pmu.textContent='marginal';}
+  else{pm.style.color='var(--ok)';pmu.textContent='stable ✓';}
+
+  renderStory(s);
+  drawBode(s);drawHR(s);buildICMRtable(s);
+  const op=computeOP();drawSchematic(op);buildRegionCards(op);
+}
+
+/* ===================== wiring ===================== */
+['wl12','wl34','wl5','wl6','wl7','i5','id6','cc','cl'].forEach(id=>{
+  $(id).addEventListener('input',()=>{lastStory={t:'s',k:id};update();});
+});
+['vcm','vd','vout'].forEach(id=>{
+  $(id).addEventListener('input',()=>{lastStory={t:'s',k:id};update();});
+});
+document.querySelectorAll('.slname').forEach(n=>n.addEventListener('click',()=>{lastStory={t:'s',k:n.dataset.s};update();}));
+document.querySelectorAll('.mcard').forEach(c=>c.addEventListener('click',()=>{lastStory={t:'m',k:c.dataset.m};update();}));
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');$('pane-'+t.dataset.t).classList.add('on');update();
+}));
+$('resetBtn').addEventListener('click',()=>{
+  const def={wl12:3,wl34:2,wl5:10,wl6:25,wl7:39,i5:20,id6:100,cc:1.4,cl:2,vcm:1.65,vd:0,vout:1.65};
+  for(const k in def)$(k).value=def[k];
+  lastStory=null;update();
+});
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',update);
+
+buildSens();
+update();
+</script>
+</body>
+</html>
